@@ -6,7 +6,7 @@ var Oracle = {
   msgSuggestPredict: 'Trykk [tab] for å spørre om: ',
 
   _autoLoad_: function() {
-    if (localStorage.oracleBrain == undefined) {
+    if (localStorage.oracleBrain === undefined) {
       var oracleBrain = {};
       for (var i=0; i<=6; i++)
         oracleBrain[i] = {night:'', morning:'', afternoon:'', evening:''};
@@ -15,7 +15,7 @@ var Oracle = {
   }(),
 
   ask: function(question, callback) {
-    if (callback == undefined) {
+    if (callback === undefined) {
       console.log('ERROR: Callback is required. In the callback you should insert the results into the DOM.');
       return;
     }
@@ -154,7 +154,7 @@ var Oracle = {
     var question = oracleBrain[timeslot.day][timeslot.hour];
     if (this.debug) console.log('Oracle predicting question for day '+timeslot.day+' in the '+timeslot.hour+': "'+question+'"');
     
-    return (question != '' ? question : null);
+    return (question !== '' ? question : null);
   },
 
   // Private functions, do not use externally
@@ -163,7 +163,7 @@ var Oracle = {
     if (this.debug) console.log('Oracle considering...\n- Question:', question, '\n- Answer:', answer);
 
     var pieces = answer.match(/buss|til|fra|passerer|kommer|senere/gi);
-    if (pieces != null) {
+    if (pieces !== null) {
       if (pieces.length >= 3) {
         var oracleBrain = JSON.parse(localStorage.oracleBrain);
         
@@ -227,4 +227,4 @@ var Oracle = {
     return pieces.join('. ') + '.';
   },
 
-}
+};
