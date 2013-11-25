@@ -9,7 +9,7 @@ var Bus = {
   msgKeyExpired: localStorage.extensionName + ' trenger oppdatering',
 
   get: function(stopId, favoriteLines, callback) {
-    if (callback == undefined) {
+    if (callback === undefined) {
       console.log('ERROR: Callback is required. In the callback you should insert the results into the DOM.');
       return;
     }
@@ -27,7 +27,7 @@ var Bus = {
   },
 
   getLines: function(stopId, callback) {
-    if (callback == undefined) {
+    if (callback === undefined) {
       console.log('ERROR: Callback is required. In the callback you should insert the results into the DOM.');
       return;
     }
@@ -68,14 +68,14 @@ var Bus = {
     lines['departures'] = [];
 
     var count = 0;
-    var nLines = (favoriteLines.length == 0 ? 10 : 100);
+    var nLines = (favoriteLines.length === 0 ? 10 : 100);
 
     for (i in departures) {
 
       var line = departures[i]['l'];
 
       // Usually controlled by favorite lines
-      if (favoriteLines.length != 0)
+      if (favoriteLines.length !== 0)
         if (favoriteLines.indexOf(Number(line)) === -1)
           continue;
       // Otherwise controlled with counter
@@ -130,7 +130,7 @@ var Bus = {
     else if (60 <= diff)
       calculatedTime = timePieces[0] + ':' + timePieces[1];
 
-    if (this.debug) console.log('Calculated time:', calculatedTime)
+    if (this.debug) console.log('Calculated time:', calculatedTime);
     return calculatedTime;
   },
 
@@ -142,4 +142,4 @@ var Bus = {
     return destination;
   },
 
-}
+};

@@ -89,7 +89,7 @@ var Cantina = {
         if (DEBUG) console.log('ERROR: '+self.msgConnectionError);
         callback(self.msgConnectionError);
       },
-    })
+    });
   },
 
   // Private
@@ -194,7 +194,7 @@ var Cantina = {
           price = price.trim();
 
           // Two price classes? Choose the cheapest
-          if (price.match(/ |\//) != null) { // Split by space or slash
+          if (price.match(/ |\//) !== null) { // Split by space or slash
             // Find delimiter
             var delimiter = '/'; // Assume split by slash
             if (price.indexOf(' ') !== -1)
@@ -202,9 +202,9 @@ var Cantina = {
             // Split and compare prices
             var price1 = price.split(delimiter)[0].match(/\d+/g);
             var price2 = price.split(delimiter)[1].match(/\d+/g);
-            if (price1 == null)
+            if (price1 === null)
               price = price2;
-            else if (price2 == null)
+            else if (price2 === null)
               price = price1;
             else
               price = ( Number(price1) < Number(price2) ? price1 : price2 );
@@ -239,7 +239,7 @@ var Cantina = {
         // Extract any food flags first
         dinner.flags = self.getFoodFlags(text);
         // If it's a message (dinner without a price) we'll just trim it
-        if (dinner.price == null) {
+        if (dinner.price === null) {
           // Even messages (like " God sommer ") needs trimming
           text = text.trim();
         }
@@ -279,7 +279,7 @@ var Cantina = {
         // Missing prices are turned into 0's by the sort function,
         // - Set prices back to null to make sure it doesn't count as a number
         dinnerObjects.forEach(function(dinner){
-          if (dinner.price == 0) dinner.price = null;
+          if (dinner.price === 0) dinner.price = null;
         });
       }
 
@@ -318,7 +318,7 @@ var Cantina = {
   removeEmptyDinnerObjects: function(dinnerObjects) {
     var nonEmptyDinnerObjects = [];
     dinnerObjects.forEach(function(dinner) {
-      if (dinner.text.trim() != '') {
+      if (dinner.text.trim() !== '') {
         nonEmptyDinnerObjects.push(dinner);
       }
     });

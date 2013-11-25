@@ -80,7 +80,7 @@ var Affiliation = {
             html = html.trim(); // Why all the newlines in the start of the file? jQuery doesn't liek dat.
             var count = 0;
             // Add each item from news tags
-            if ($(html).find('.article').length != 0) {
+            if ($(html).find('.article').length !== 0) {
               $(html).find('.article').each( function() {
                 if (count < posts.length) {
                   var post = posts[count];
@@ -1102,7 +1102,7 @@ var Affiliation = {
     // };
 
     // Create empty object to avoid crashes when looking up undefined props of undefined object
-    if (options == undefined)
+    if (options === undefined)
       options = {};
 
     var url = affiliation.web;
@@ -1123,7 +1123,7 @@ var Affiliation = {
     
     // In case we don't find any images, prepare an array with placeholders
     var placeholder = affiliation.placeholder;
-    var placeholders = []
+    var placeholders = [];
     for (var i=0; i<links.length; i++)
       placeholders.push(placeholder);
 
@@ -1156,7 +1156,7 @@ var Affiliation = {
           else {
             for (var i=0; i<containers.length; i++) {
               var current = containers[i];
-              if (doc.find(current).length != 0) {
+              if (doc.find(current).length !== 0) {
                 newsSelector = current;
                 if (self.debug) console.log('Using selector', '"'+current+'" for news at '+url+'\n');
                 break;
@@ -1193,7 +1193,7 @@ var Affiliation = {
             var image = doc.find(newsSelector + ' a[href="' + link + '"]');
 
             // ...then find parent 'article' or 'div.post' or the like...
-            if (image.length != 0) {
+            if (image.length !== 0) {
               if (self.debug) console.log('Found something with the link, finding the parent (the news box');
               image = image.parents(newsSelector);
             }
@@ -1255,7 +1255,7 @@ var Affiliation = {
             }
             // If image is something useless like "//assets.pinterest.com/whatever.png"
             // NOTE: Must be done after adding "http" and domainUrl
-            else if (image.match('^https?://') == null) {
+            else if (image.match('^https?://') === null) {
               if (self.debug) console.log('No good image exists for link', link);
               image = placeholder;
             }
@@ -1281,4 +1281,4 @@ var Affiliation = {
     });
   },
 
-}
+};

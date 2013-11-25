@@ -41,23 +41,23 @@ Ajaxer = {
   },
 
   get: function(params) {
-    if (params == undefined) {
+    if (params === undefined) {
       console.log('ERROR: Params is required. Check ajaxer.js to see format of params.');
       return;
     }
-    if (params.url == undefined) {
+    if (params.url === undefined) {
       console.log('ERROR: URL missing from params.');
       return;
     }
-    if (params.dataType == undefined) {
+    if (params.dataType === undefined) {
       console.log('ERROR: Do not use Ajaxer.get() directly, use getXml, getJson or one of the others instead.');
       return;
     }
-    if (params.success == undefined) {
+    if (params.success === undefined) {
      console.log('ERROR: Params is missing success function. The success function should use the results for something useful.');
       return;
     }
-    if (params.error == undefined) {
+    if (params.error === undefined) {
      console.log('ERROR: Params is missing error function. Error handling must be in place.');
       return;
     }
@@ -69,7 +69,7 @@ Ajaxer = {
       // Notifier Mobile
       var dataBlob = {};
       dataBlob.url = params.url;
-      if (params.data != undefined) {
+      if (params.data !== undefined) {
         dataBlob.data = params.data;
       }
       return $.ajax({
@@ -133,4 +133,4 @@ Ajaxer = {
     if (Ajaxer.debug) console.log('Ajaxer cleaned HTML, from', size, 'to', html.length);
     return html;
   },
-}
+};

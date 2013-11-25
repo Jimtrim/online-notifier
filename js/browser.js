@@ -5,7 +5,7 @@ var Browser = {
 
   setIcon: function(path) {
     if (BROWSER == 'Chrome' || BROWSER == 'Opera') {
-      if (chrome.browserAction != undefined) {
+      if (chrome.browserAction !== undefined) {
         chrome.browserAction.setIcon({path: path});
       }
     }
@@ -16,7 +16,7 @@ var Browser = {
 
   setTitle: function(title) {
     if (BROWSER == 'Chrome' || BROWSER == 'Opera') {
-      if (chrome.browserAction != undefined) {
+      if (chrome.browserAction !== undefined) {
         chrome.browserAction.setTitle({title: title});
       }
     }
@@ -42,11 +42,11 @@ var Browser = {
   },
 
   setBadgeText: function(text) {
-    if (typeof text == 'undefined' || text == null || isNaN(Number(text)) || Number(text) <= 0) {
+    if (typeof text == 'undefined' || text === null || isNaN(Number(text)) || Number(text) <= 0) {
       text = '';
     }
     if (BROWSER == 'Chrome' || BROWSER == 'Opera') {
-      if (chrome.browserAction != undefined) {
+      if (chrome.browserAction !== undefined) {
         text = String(text);
         chrome.browserAction.setBadgeText({text: text});
       }
@@ -58,7 +58,7 @@ var Browser = {
 
   openTab: function(url) {
     if (BROWSER == 'Chrome' || BROWSER == 'Opera') {
-      if (chrome.tabs != undefined) {
+      if (chrome.tabs !== undefined) {
         chrome.tabs.create({url: url, selected: true});
       }
     }
@@ -69,7 +69,7 @@ var Browser = {
 
   openBackgroundTab: function(url) {
     if (BROWSER == 'Chrome' || BROWSER == 'Opera') {
-      if (chrome.tabs != undefined) {
+      if (chrome.tabs !== undefined) {
         chrome.tabs.create({url: url, selected: false});
       }
     }
@@ -80,7 +80,7 @@ var Browser = {
 
   getBackgroundProcess: function() {
     if (BROWSER == 'Chrome' || BROWSER == 'Opera') {
-      if (chrome.extension != undefined) {
+      if (chrome.extension !== undefined) {
         return chrome.extension.getBackgroundPage();
       }
     }
@@ -212,4 +212,4 @@ var Browser = {
     }
   },
 
-}
+};
