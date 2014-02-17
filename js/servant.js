@@ -1,9 +1,9 @@
 var Servant = {
-  msgNone: 'Ingen kontorvakt nå',
-  msgError: 'Frakoblet fra vaktplan',
+  debug: 0,
+  debugString: '11:00-12:00 Steinar Hagen\n12:00-13:00 Espen Skarsbø Kristoffersen Olsen\n13:00-14:00 Aina Elisabeth Thunestveit',
   
-  debugServant: 0,
-  debugServantString: '11:00-12:00 Steinar Hagen\n12:00-13:00 Espen Skarsbø Kristoffersen Olsen\n13:00-14:00 Aina Elisabeth Thunestveit',
+  msgNone: 'Ingen har ansvar nå',
+  msgError: 'Frakoblet fra vaktplan',
 
   get: function(callback) {
     if (callback == undefined) {
@@ -11,7 +11,7 @@ var Servant = {
       return;
     }
 
-    var api = Affiliation.org[localStorage.affiliationKey1].servantApi;
+    var api = Affiliation.org[localStorage.affiliationKey1].hw.apis.servant;
 
     // Receives the meeting plan for today
     var self = this;
@@ -20,8 +20,8 @@ var Servant = {
       success: function(servant) {
 
         // If servant debugging is enabled
-        if (self.debugServant) {
-          servant = self.debugServantString;
+        if (self.debug) {
+          servant = self.debugString;
         }
 
         servantList = servant.split("\n");
@@ -48,22 +48,7 @@ var Servant = {
           end.setMinutes(endTime[1]);
           
           if (start <= now && now <= end) {
-
-            // If the servantname is quite long...
-            if (servantName.length >= 25) {
-              if (servantName.split(" ").length >= 3) {
-                names = servantName.split(" ");
-                // ...we'll shorten all middle names to one letter
-                for (var i = names.length - 2; i >= 1; i--) {
-                  names[i] = names[i].charAt(0).toUpperCase()+'.';
-                }
-                servantName = '';
-                for (i in names) {
-                  servantName += names[i] + " ";
-                }
-              }
-            }
-
+            servantName = self.shortenServantName(servantName);
             callback('Vakt: '+servantName);
           }
           else {
@@ -71,15 +56,49 @@ var Servant = {
             callback(self.msgNone);
           }
         }
+        // If it's an actual servant with a date slot instead:
+        // 10.2-14.2 Michael Johansen
+        else if (currentServant.match(/\d+\.\d+\-\d+\.\d+/)) {
+          // Match out the name from the line
+          var pieces = currentServant.match(/(\d+\.\d+\-\d+\.\d+) (.*)/);
+          var timeSlot = pieces[1];
+          var servantName = pieces[2];
+
+          // Assume we are within the correct dates
+          servantName = self.shortenServantName(servantName);
+          callback('Vakter: '+servantName);
+        }
         else {
           // No more servants today
           callback(self.msgNone);
         }
       },
       error: function(jqXHR, text, err) {
-        if (DEBUG) console.log('ERROR: Failed to get current servant.');
+        console.log('ERROR: Failed to get current servant.');
         callback(self.msgError);
       },
     });
+  },
+
+  shortenServantName: function(name) {
+    // If there are multiple names, don't shorten
+    if (name.match(/ ?(,|&|og|and) /gi) !== null) {
+      return name;
+    }
+    // If the name is quite long...
+    if (name.length >= 25) {
+      if (name.split(" ").length >= 3) {
+        names = name.split(" ");
+        // ...we'll shorten all middle names to one letter
+        for (var i = names.length - 2; i >= 1; i--) {
+          names[i] = names[i].charAt(0).toUpperCase()+'.';
+        }
+        name = '';
+        for (i in names) {
+          name += names[i] + " ";
+        }
+      }
+    }
+    return name;
   },
 }

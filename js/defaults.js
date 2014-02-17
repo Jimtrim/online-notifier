@@ -109,7 +109,7 @@ var Defaults = {
       ls.openChatter = 'false';
     
     // Notifications
-    if (ls.showNotifications == undefined && !DEBUG) // During debugging notifications are annoying
+    if (ls.showNotifications == undefined)
       ls.showNotifications = 'true';
     
     // Subscription
@@ -130,6 +130,28 @@ var Defaults = {
     if (ls.everOpenedOptions == undefined)
       ls.everOpenedOptions = 'false';
   }(),
+
+  // Whenever we need to remove an existing affiliation,
+  // this little heartsaver comes to our rescue. Just go
+  // ahead and uncomment that affiliation in Affiliation.js !
+  resetAffiliationsIfNotExist: function(key1, key2, affiliationKeys) {
+
+    var ls = localStorage;
+
+    var gotoOptions = function(key) {
+      if (confirm('Online Notifier beklager:\n\n"'+key+'" er borte fra Notifier :(\n\nTrolig fordi foreningens nettside ikke finnes lenger.\n\nDu kan trykke OK for å åpne Notifiers innstillinger.')) {
+        Browser.openTab('options.html');
+      }
+    }
+    if (affiliationKeys.indexOf(key1) === -1) {
+      ls.affiliationKey1 = 'online';
+      gotoOptions(key1);
+    }
+    if (affiliationKeys.indexOf(key2) === -1) {
+      ls.affiliationKey2 = 'dusken';
+      gotoOptions(key2);
+    }
+  },
 
   // There is currently no way of knowing whether HardwareFeatures have been
   // installed recently or not, - if they exist. Therefore we will assume the

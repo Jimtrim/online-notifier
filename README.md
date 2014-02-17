@@ -1,24 +1,31 @@
 # Online Notifier
 
-This is a both a Chrome/Opera extension and a WebApp from the student organization Online at NTNU, see http://online.ntnu.no
+This is a Chrome/Opera extension and a WebApp from the student organization Online at NTNU, see http://online.ntnu.no
 
 * Install for Chrome: https://chrome.google.com/webstore/detail/hfgffimlnajpbenfpaofmmffcdmgkllf
 * Install for Opera: https://addons.opera.com/en/extensions/details/online-notifier
 * Add WebApp for Mobile: Navigate to http://informatikk.org/mobile and tap "Add to Home Screen" in the context menu of the browser
 
+# OmegaV NotiPi
+
+Omega Verksted (OmegaV) has created the hardware bundle which complements Online Notifier by making hardware features in Notifier accessible to any student union who purchases and installs the bundle. OmegaV currently sells this bundle at a reasonable price. The earnings goes to further development and to support OmegaV's operations.
+
+* Contact Omega Verksted: omegav@omegav.no or http://omegav.no/
+
 # Media coverage
 
 * 2013.09.03 "Hemmelig program ble suksess": http://dusken.no/articles/details/23569/online-notifier/
 * 2013.05.28 "Siste nytt - og om
-litt er kaffen klar": http://www.universitetsavisa.no/campus/article17115.ece
+litt er kaffen klar": http://universitetsavisa.no/campus/article17115.ece
 
 # Terms of use
 
-Use this program entirely on your own risk. We do not take any responsibility for consequences that might arise from using this program in any way imaginable.
+Use this program or it's code entirely at your own risk. We do not, in any way imaginable, take any responsibility for consequences that might arise from using this program, it's code, or any parts of the program or the code.
 
 # Features overview
 
-For all the included affiliations:
+For all the included affiliations
+
 - Displays and notifies about news from the selected "linjeforening"
 - Displays todays dinner menu and opening hours from SiT cantinas, cafés and kiosks
 - Displays bus data from AtB in real time
@@ -26,30 +33,37 @@ For all the included affiliations:
 - All pages in the extension are live, they keep themselves updated
 - Can be used as an infoscreen (full HD vertical screen) for continous use
 
-Additional features for affiliations who have installed hardware:
+Additional features for affiliations who have OmegaV NotiPi
+
 - Displays office status: Open, closed, meeting, free waffles
 - Displays todays meetings and current servant at the office
 - Displays the status of the coffee pot at the office
 
-Additional features currently only available for Online:
-- Usable as a webapp for iOS/Android by simply putting all the code on a PHP-enabled server
+Additional features currently only available for Online
+
+- Usable as a webapp for iOS/Android by simply putting all the code on a PHP-enabled server and accessing it via the Safari browser in iOS
 
 # Chronological Credz
 
-- Michael Johansen is the lead coder
-- Espen Jacobsson wrote Onlines API-service
-- Roy Sindre Norangshol wrote the light service
+Key people are annotated with their email address
+
+- Michael Johansen <michael@informatikk.org> is the project leader and was the sole developer of the extension itself (not support services) for the first couple of years
+- Espen Jacobsson wrote Onlines API-service in OnlineWeb3
+- Roy Sindre Norangshol wrote the initial light service
 - Dag Olav Prestegarden wrote the initial calendar service
-- René Räisänen designed the graphics
-- Tri Minh Nguyen created the overlay API for AtB's realtime bus API
-- Jonas Svarvaa wrote all the subsequent revisions of calendar services
+- René Räisänen designed the background image
+- Tri Minh Nguyen created the API for AtB's realtime bus API
+- Jonas Svarvaa wrote several revisions of calendar services
 - Roy Sindre Norangshol helped with several maintenance issues
 - Magnus Dysthe has been working on hardware for the infoscreen
 - Tor Håkon Bonsaksen helped with several hardware issues
 - Kristoffer Dalby hacked up scripts that fixed ubuntu screen-to-black issues
-- Jim Frode Hoff made the coffee button, attached to an Arduino
+- Jim Frode Hoff <jimfrodehoff@gmail.com> made the coffee button, attached to an Arduino
 - Nils Herde fixed hardware issues, kept the infoscreen running and installed the coffee button
-- The following made coffee memes:
+- Vegard Stenhjem Hagen installed all the hardware for Delta
+- Eirik Larsen <eirik.larsen93@gmail.com> made the OmegaV NotiPi, which made Notifier's hardware features accessible to all the student unions in Trondheim
+
+- Also, the following made coffee memes:
 	- Thomas Gautvedt
 	- Aleksander Skraastad
 	- John Hanssen Kolstad
@@ -119,13 +133,13 @@ News
 - Separates between new, updated and read items
 - Serves HTML5 desktop notifications on news / updates
 
-Office (requires hardware)
+Office (requires OmegaV NotiPi)
 
 - Office status is fetched from multiple sources, including Google Calendar and two Arduinos running on a Raspberry Pi
 - Reads roof light intensity from an Arduino Uno, the service displays a file like this: http://draug.online.ntnu.no/lys.txt
 - Uses a stable border value, fairly unaffected by sunlight
 - Reads the light value frequently in order to react quickly to changes
-- Reads events which are parsed from the affiliation systems which in turn is parsed from a GoogleCal, the running service displays a file like this: https://online.ntnu.no/service_static/office_status
+- Reads events which are parsed from the affiliation systems which in turn is parsed from a GoogleCal, the running service displays a file like this: https://online.ntnu.no/notifier/delta/office
 - Retrieves very lightweight requests with event information from GCal
 - Updates often in order to react to changes quickly
 - Icon changes based on light values and calendar events
@@ -133,22 +147,22 @@ Office (requires hardware)
 - Separate icon showing when you are offline or when an error has occured
 - All states: Default, open, closed, meeting, waffles, error (error usually means disconnected)
 
-Meetings (requires hardware)
+Meetings (requires OmegaV NotiPi)
 
 - Showing the rest of the days meetings so users may easily spot when to grab a coffee
-- Fetched via a service running at Onlines servers, which is fetched from a GoogleCal, service running at https://online.ntnu.no/service_static/meeting_plan
+- Fetched via a service running at Onlines servers, which is fetched from a GoogleCal, service running at https://online.ntnu.no/notifier/meetings
 
-Servant (requires hardware)
+Servant (requires OmegaV NotiPi)
 
-- Shows who is responsible for the Online office at any given time
-- Fetched via a service running at Onlines servers, which is fetched from a GoogleCal, service running at https://online.ntnu.no/service_static/servant_list
+- Shows who is responsible for the affiliation office at any given time
+- Fetched via Online, which has prefetched from a GoogleCal, service running at e.g. https://online.ntnu.no/notifier/delta/office
 
-Coffee (requires hardware)
+Coffee (requires OmegaV NotiPi)
 
-- An arduino is connected to a big button at the Online office, to be pushed whenever someone is cooking a new pot of coffee
+- An arduino is connected to a button at your affiliations office, to be pushed whenever someone is cooking a new pot of coffee
 - Whenever a new coffee pot is made users get a HTML desktop notification with a random coffee meme
 - Overview showing how old the last pot of coffee is and how many pots of coffee has been made today
-- Fetched via a service running at Onlines Raspberry Pi, found at http://draug.online.ntnu.no/coffee.txt
+- Fetched via a running service, e.g. like this: http://draug.online.ntnu.no/coffee.txt
 
 Options page
 
@@ -158,9 +172,11 @@ Options page
 
 Injected script
 
+- Automatically switches to the correct clicked cantina from the popup
 - Detects when user is visiting the affiliation website, nullifying the counter badge
+- Injects affiliation logo when opening the affiliation specific IRC channel via kiwiirc.com
 
-Google Analytics
+Analytics
 
 - All statistics are anonymously collected and helps develop the project further
 - Runs page tracking on all pages which gives general traffic, OS, browsers, countries etc.

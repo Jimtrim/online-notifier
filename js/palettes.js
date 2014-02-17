@@ -26,16 +26,19 @@ var Palettes = {
         return path;
       }
       else {
-        if (DEBUG) console.log('ERROR: a special palette has not yet been created for the affiliation', palette);
+        console.lolg('ERROR: a special palette has not yet been created for the affiliation', palette);
         return this.palettes['blue'];
       }
     }
 
-    if (DEBUG) console.log('ERROR: unsupported palette', palette);
+    console.lolg('ERROR: unsupported palette', palette);
     return this.palettes['blue'];
   },
 
   load: function(elementId) {
+    // Guess an element with id="palette"
+    if (typeof elementId == 'undefined')
+      var elementId = 'palette';
     // For speed and esthetical reasons this script runs
     // before jQuery is loaded so don't use jQuery here.
     var paletteLink = document.getElementById(elementId);
@@ -46,11 +49,11 @@ var Palettes = {
       paletteLink.href = palette;
     }
     else {
-      if (DEBUG) console.log('ERROR: palette link element with ID "#' + elementId + '" not found');
+      console.lolg('ERROR: palette link element with ID "#' + elementId + '" not found');
     }
-  }
+  },
 
 }
 
 // Palette self-loading
-Palettes.load('palette');
+Palettes.load();

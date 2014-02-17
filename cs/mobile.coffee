@@ -8,16 +8,18 @@ newsLimit = 4 # The best amount of news for Mobile, IMO
 window.IS_MOBILE = 1 # An easy hack saving a lot of work, ajaxer.js checks this to determine URL path and HTTP method
 
 mainLoop = ->
-  if DEBUG then console.log "\n#" + iteration
+  console.lolg "\n#" + iteration
 
-  if Affiliation.org[ls.affiliationKey1].hardwareFeatures
+  # Only if hardware
+  if Affiliation.org[ls.affiliationKey1].hw
     updateOffice() if iteration % UPDATE_OFFICE_INTERVAL is 0 and ls.showOffice is 'true'
     updateServant() if iteration % UPDATE_SERVANT_INTERVAL is 0 and ls.showOffice is 'true'
     updateMeetings() if iteration % UPDATE_MEETINGS_INTERVAL is 0 and ls.showOffice is 'true'
     updateCoffee() if iteration % UPDATE_COFFEE_INTERVAL is 0 and ls.showOffice is 'true'
-  updateCantinas() if iteration % UPDATE_CANTINAS_INTERVAL is 0 and ls.showCantina is 'true'
-  updateHours() if iteration % UPDATE_HOURS_INTERVAL is 0 and ls.showCantina is 'true'
+  # Always update, tell when offline
   updateBus() if iteration % UPDATE_BUS_INTERVAL is 0 and ls.showBus is 'true'
+  updateHours() if iteration % UPDATE_HOURS_INTERVAL is 0 and ls.showCantina is 'true'
+  updateCantinas() if iteration % UPDATE_CANTINAS_INTERVAL is 0 and ls.showCantina is 'true'
   updateNews() if iteration % UPDATE_NEWS_INTERVAL is 0
   
   # No reason to count to infinity
@@ -28,7 +30,7 @@ mainLoop = ->
   ), PAGE_LOOP
 
 updateOffice = ->
-  if DEBUG then console.log 'updateOffice'
+  console.lolg 'updateOffice'
   Office.get (status, message) ->
     if ls.officeStatus isnt status or ls.officeStatusMessage isnt message
       title = ''
@@ -43,32 +45,33 @@ updateOffice = ->
       ls.officeStatusMessage = message
 
 updateServant = ->
-  if DEBUG then console.log 'updateServant'
+  console.lolg 'updateServant'
   Servant.get (servant) ->
     $('#todays #schedule #servant').html '- '+servant
 
 updateMeetings = ->
-  if DEBUG then console.log 'updateMeetings'
+  console.lolg 'updateMeetings'
   Meetings.get (meetings) ->
     meetings = meetings.replace /\n/g, '<br />'
     $('#todays #schedule #meetings').html meetings
 
 updateCoffee = ->
-  if DEBUG then console.log 'updateCoffee'
+  console.lolg 'updateCoffee'
   Coffee.get true, (pots, age) ->
     $('#todays #coffee #pots').html '- '+pots
     $('#todays #coffee #age').html age
 
-updateCantinas = ->
-  if DEBUG then console.log 'updateCantinas'
+updateCantinas = (first) ->
+  console.lolg 'updateCantinas'
+  update = (shortname, menu, selector) ->
+    name = Cantina.names[shortname]
+    $('#cantinas #'+selector+' .title').html name
+    $('#cantinas #'+selector+' #dinnerbox').html listDinners menu
+    clickDinnerLink '#cantinas #'+selector+' #dinnerbox li', shortname
   Cantina.get ls.leftCantina, (menu) ->
-    cantinaName = Cantina.names[ls.leftCantina]
-    $('#cantinas #left .title').html cantinaName
-    $('#cantinas #left #dinnerbox').html listDinners(menu)
+    update ls.leftCantina, menu, 'left'
   Cantina.get ls.rightCantina, (menu) ->
-    cantinaName = Cantina.names[ls.rightCantina]
-    $('#cantinas #right .title').html cantinaName
-    $('#cantinas #right #dinnerbox').html listDinners(menu)
+    update ls.rightCantina, menu, 'right'
 
 listDinners = (menu) ->
   dinnerlist = ''
@@ -95,14 +98,14 @@ clickDinnerLink = (cssSelector) ->
     window.close()
 
 updateHours = ->
-  if DEBUG then console.log 'updateHours'
+  console.lolg 'updateHours'
   Hours.get ls.leftCantina, (hours) ->
     $('#cantinas #left .hours').html hours
   Hours.get ls.rightCantina, (hours) ->
     $('#cantinas #right .hours').html hours
 
 updateBus = ->
-  if DEBUG then console.log 'updateBus'
+  console.lolg 'updateBus'
   if !navigator.onLine
     $('#bus #firstBus .name').html ls.firstBusName
     $('#bus #secondBus .name').html ls.secondBusName
@@ -147,19 +150,19 @@ insertBusInfo = (lines, stopName, cssIdentificator) ->
 # This function is an edited, combined version of the similar functions from
 # both background.coffee (fetches news) and popup.coffee (displays news)
 updateNews = ->
-  if DEBUG then console.log 'updateNews'
+  console.lolg 'updateNews'
   # Get affiliation object
   affiliationKey1 = ls['affiliationKey1']
   affiliation = Affiliation.org[affiliationKey1]
   if affiliation is undefined
-    if DEBUG then console.log 'ERROR: chosen affiliation', affiliationKey1, 'is not known'
+    console.lolg 'ERROR: chosen affiliation', affiliationKey1, 'is not known'
   else
     # Get more news than needed to check for old news that have been updated
     getNewsAmount = 10
     News.get affiliation, getNewsAmount, (items) ->
       if typeof items is 'string'
         # Error message, log it maybe
-        if DEBUG then console.log 'ERROR:', items
+        console.lolg 'ERROR:', items
         name = Affiliation.org[affiliationKey1].name
         $('#news').html '<div class="post"><div class="title">Nyheter</div><div class="item">Frakoblet fra '+name+'</div></div>'
       else
@@ -275,7 +278,7 @@ findUpdatedPosts = (newsList, viewedList) ->
   return updatedList
 
 busLoading = (cssIdentificator) ->
-  if DEBUG then console.log 'busLoading:', cssIdentificator
+  console.lolg 'busLoading:', cssIdentificator
   cssSelector = '#' + cssIdentificator
   loading = if cssIdentificator is 'firstBus' then 'loadingLeft' else 'loadingRight'
   $(cssSelector + ' .name').html '<img class="'+loading+'" src="mimg/loading.gif" />'

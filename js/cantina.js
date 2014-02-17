@@ -86,7 +86,7 @@ var Cantina = {
         self.parseXml(xml, callback);
       },
       error: function(jqXHR, text, err) {
-        if (DEBUG) console.log('ERROR: '+self.msgConnectionError);
+        console.lolg('ERROR: '+self.msgConnectionError);
         callback(self.msgConnectionError);
       },
     });
@@ -134,7 +134,7 @@ var Cantina = {
       self.parseTodaysMenu(todaysMenu, mondaysCantinaMenu, callback);
     }
     catch (err) {
-      if (DEBUG) console.log('ERROR: problems during parsing of dinner xml');
+      console.lolg('ERROR: problems during parsing of dinner xml');
       callback(self.msgMalformedMenu + ': ' + err);
     }
   },
@@ -177,7 +177,7 @@ var Cantina = {
           }
         }
         else {
-          if (DEBUG) console.log('ERROR: problems during initial parsing of todays dinner');
+          console.lolg('ERROR: problems during initial parsing of todays dinner');
           callback(self.msgMalformedMenu);
           return;
         }
@@ -237,6 +237,8 @@ var Cantina = {
         var text = dinner.text;
 
         // Extract any food flags first
+        text = self.addMissingFoodFlags(text);
+        text = self.removeTextualFoodFlags(text);
         dinner.flags = self.getFoodFlags(text);
         // If it's a message (dinner without a price) we'll just trim it
         if (dinner.price === null) {
@@ -248,16 +250,24 @@ var Cantina = {
           text = self.addMissingSpaces(text);
           text = self.shortenFoodServedWith(text);
           text = self.shortenFoodWithATasteOf(text);
+          text = self.shortenTodaysSoup(text);
           text = self.expandAbbreviations(text);
           text = self.removeFoodHomeMade(text);
-          text = self.removePartsAfter(['.','('], text); // don't use: '/', ','
           text = text.trim();
-          // If current item is NOT about the buffet, continue with:
-          if (text.toLowerCase().indexOf('buffet') === -1) {
+          text = text.capitalize();
+          // If current item is NOT about the buffet, a special or the takeaway, continue with:
+          if (text.match(/buffet|dag|takeaway/gi) === null) {
+            text = self.removePartsAfter(['.','('], text); // don't use: '/', ','
             text = self.limitNumberOfWords(self.dinnerWordLimit, text);
-            text = self.removeLastWords([' i',' &',' og',' med', ' m'], text);
+            text = self.removeLastWords([
+              'i','&','og','med','m','eller',
+              'frisk','friske',
+              'gresk',
+              'inkl','inkludert',
+              'krydret',
+              'strimla','strimlet',
+            ], text);
             text = self.removePunctuationAtEndOfLine(text);
-            text = self.shortenVeggieWarning(text);
             text = text.trim();
           }
         }
@@ -289,7 +299,7 @@ var Cantina = {
       callback(dinnerObjects);
     }
     catch (err) {
-      if (DEBUG) console.log('ERROR: problems during deep parsing of todays dinners');
+      console.lolg('ERROR: problems during deep parsing of todays dinners');
       callback(self.msgMalformedMenu);
     }
   },
@@ -339,11 +349,16 @@ var Cantina = {
 
   removeLastWords: function(keys, text) {
     var self = this;
-    for (key in keys) {
-      if (self.debugText) console.log(keys[key] + (keys[key].length<4?'\t\t':'\t') + ':: ' + text);
-      if (self.endsWith(keys[key], text)) {
-        var pieces = text.split(' ');
-        text = pieces.splice(0,pieces.length-1).join(' ');
+    // We'll do this twice in case some keywords are laid out after eachother.
+    // Example: "Raspeballer med frisk salat", where "med" and "frisk" are keywords.
+    for (var i=0; i<2; i++) {
+      for (key in keys) {
+        if (self.debugText) console.log(keys[key] + (keys[key].length<4?'\t\t':'\t') + ':: ' + text);
+        var spacedKey = ' '+keys[key];
+        if (self.endsWith(spacedKey, text)) {
+          var pieces = text.split(' ');
+          text = pieces.splice(0,pieces.length-1).join(' ');
+        }
       }
     }
     return text;
@@ -351,9 +366,34 @@ var Cantina = {
 
   // Welcome to the department of regular expressions, how may we (help|do) you\?
 
+  addMissingFoodFlags: function(text) {
+    // Sometimes, SiT will write "vegetar" in the text, but forget to add the food flag (V)
+    if (text.match(/(ingen|ikke) vegetar/gi) === null)
+      if (text.match(/vegetar/gi) !== null)
+        text += '(V)';
+    if (text.match(/((uten |ikke )gluten)|gluten ?fri/gi) !== null)
+      text += '(G)';
+    if (text.match(/((uten |ikke )laktose)|laktose ?fri/gi) !== null)
+      text += '(L)';
+    return text;
+  },
+
+  removeTextualFoodFlags: function(text) {
+    // After the flag has been added properly with addMissingFoodFlags, common cases
+    // of "vegetar" in the text may be removed (shown with flag instead like "(V)")
+    text = text.replace(/vegetar( - )?/gi, '');
+    // TODO: Watch out for Laktosefri or Glutenfri variants.
+    return text;
+  },
+
   getFoodFlags: function(text) {
     var matches = text.match(/\b[VGL]+(?![æøåÆØÅ])\b/g);
-    return (matches !== null ? '(' + matches.join('') + ')' : null);
+    if (matches === null)
+      return null;
+    matches = matches.filter(function(elem, pos) {
+      return matches.indexOf(elem) == pos;
+    });
+    return '(' + matches.sort().join('') + ')';
     // TODO: Both getFoodFlags and removeFoodFlags suffer from a lacking implementation
     // of the regex flag 'word boundary'. Add the flag /i to both and make sure they
     // can handle æøåÆØÅ on both sides of food flags, especially in words like
@@ -392,10 +432,16 @@ var Cantina = {
     return text.replace(/[,|\.]?\s?(med)?\s?(en|et)?\s?(liten?)?\s?(smak|hint|dæsj|tøtsj)\s?(av)?\s/gi, ' med ');
   },
 
+  shortenTodaysSoup: function(text) {
+    if (this.debugText) console.log('Soup\t:: ' + text);
+    // Shortening "Dagens suppe - Løksuppe med løk (G)" to "Løksuppe med løk (G)"
+    return text.replace(/dagens suppe(\: | - )/gi, '');
+  },
+
   expandAbbreviations: function(text) {
     if (this.debugText) console.log('Abbrev.\t:: ' + text);
     // Replace wordings like 'm', 'm/' with the actual word, make sure there is one space on either side of the word
-    return text.replace(/((\b|[æøåÆØÅ]*)\S|\S(\b|[æøåÆØÅ]*)) ?\/?m(\/| |\b|[æøåÆØÅ]) ?/gi, '$1 med ');
+    return text.replace(/([a-zæøåÆØÅ]*)[ ,\.]\/?m(\/| |\b|[æøåÆØÅ]) ?/gi, '$1 med ');
   },
 
   removeFoodHomeMade: function(text) {
@@ -411,22 +457,14 @@ var Cantina = {
     return text.replace(/[,;.-]$/gm, '');
   },
 
-  shortenVeggieWarning: function(text) {
-    if (this.debugText) console.log('Vegwarn\t:: ' + text);
-    // Shortening "Ingen vegetar i dag" to "Ingen vegetar"
-    if (text.match(/^(ingen|ikke) vegetar/i) != null)
-      text = text.split(' ').splice(0,2).join(' ');
-    return text;
-  },
-
   limitNumberOfWords: function(limit, originalText) {
     if (this.debugText) console.log(limit + '\t\t:: ' + originalText);
     var text = originalText;
     if (text.split(' ').length > limit) {
       text = text.split(' ').splice(0,limit).join(' ');
       // Surprisingly accurate check to see if we're ending the sentence with a verb
-      // E.g. "Gryte med wokede", "Lasagna med friterte", "Risrett med kokt", "Pølse med hjemmelaget"
-      if (text.match(/(te|de|kt|laget|frisk)$/))
+      // E.g. "Gryte med wokede", "Lasagna med friterte", "Risrett med kokt", "Pølse med hjemmelaget", "Taco med godt"
+      if (text.match(/(te|de|dt|kt|dampet|laget)$/))
         // In that case, return the expected noun as well (heighten limit by 1)
         return originalText.split(' ').splice(0,limit+1).join(' ');
     }

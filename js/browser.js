@@ -78,6 +78,16 @@ var Browser = {
     }
   },
 
+  getUrl: function(url) {
+    // Allows you to get an accessible URL for a resource in the extension, e.g. an image
+    if (BROWSER == 'Chrome' || BROWSER == 'Opera') {
+      return chrome.extension.getURL(url);
+    }
+    else {
+      console.log(this.msgUnsupported);
+    }
+  },
+
   getBackgroundProcess: function() {
     if (BROWSER == 'Chrome' || BROWSER == 'Opera') {
       if (chrome.extension !== undefined) {
@@ -89,7 +99,62 @@ var Browser = {
     }
   },
 
+  getAppVersion: function() {
+    try {
+      if (BROWSER == 'Chrome') {
+        return chrome.runtime.getManifest().version + ' @ ' + BROWSER;
+      }
+      else if (BROWSER == 'Opera') {
+        return 'Unknown @ ' + BROWSER // TODO: Implement when available
+      }
+      else {
+        console.log(this.msgUnsupported);
+      }
+    } catch (err) {
+      // Do nothing, we're just checking
+    }
+    return 'Unknown @ ' + BROWSER
+  },
+
+  bindCommandHotkeys: function() {
+    if (BROWSER == 'Chrome') {
+      chrome.commands.onCommand.addListener(function(command) {
+        if (command == 'open_instabart') {
+          Browser.openTab('http://instabart.no');
+        }
+        else if (command == 'open_affiliation') {
+          var key = localStorage.affiliationKey1;
+          var web = Affiliation.org[key].web;
+          Browser.openTab(web);
+        }
+        else {
+          console.log('ERROR: Unrecognized browser command');
+        }
+      });
+    }
+    else {
+      console.log(this.msgUnsupported);
+    }
+  },
+
+  // Things in item:
+  // - feedKey: 'orgx'
+  // - title: 'Hello World'
+  // - description: 'Good day to you World, how are you today?'
+  // - link: 'http://orgx.no/news/helloworld'
+  // Optional things in item:
+  // - image: 'http://orgx.no/media/helloworld.png'
+  // - symbol: 'img/whatever.png'
+  // - longStory: true
+  // - stay: true
   createNotification: function(item) {
+    // Check required params
+    if (!item) console.log('ERROR: function takes one object, {feedKey, title, description, link, *image, *symbol, *longStory, *stay} (* == optional)');
+    if (!item.feedKey) console.log('ERROR: item.feedKey is required');
+    if (!item.title) console.log('ERROR: item.title is required');
+    if (!item.description) console.log('ERROR: item.description is required');
+    if (!item.link) console.log('ERROR: item.link is required');
+
     var self = this;
     if (BROWSER == 'Chrome') {
       // Check if browser is active, not "idle" or "locked"
@@ -97,37 +162,39 @@ var Browser = {
         chrome.idle.queryState(30, function (state) {
           if (state == 'active') {
 
-            // Load affiliation icon
-            var symbol = Affiliation.org[item.feedKey].symbol;
+            // Load affiliation icon if symbol is not provided
+            if (!item.symbol)
+              item.symbol = Affiliation.org[item.feedKey].symbol;
 
-            // Set options
-            var options = {
+            // Set notification
+            var notification = {
                type: 'basic',
-               iconUrl: symbol,
+               iconUrl: item.symbol,
                title: item.title,
                message: item.description,
                priority: 0,
             };
 
             // We'll show an "image"-type notification if image exists and is not a placeholder
-            if (typeof item.image != 'undefined') {
+            if (item.image) {
               if (item.image != Affiliation.org[item.feedKey].placeholder) {
-                options.type = 'image';
-                options.imageUrl = item.image;
+                notification.type = 'image';
+                notification.imageUrl = item.image;
               }
             }
 
-            // Shorten messages to fit nicely
-            var maxLength = 63;
+            // Shorten messages to fit nicely (300 because around 250 is max limit anyway)
+            var maxLength = (item.longStory ? 300 : 63);
             if (maxLength < item.description.length) {
-              options.message = item.description.substring(0, maxLength) + '...';
+              notification.message = item.description.substring(0, maxLength) + '...';
             }
+
             // If basic type is used, we should also provide expandedMessage
-            if (options.type == 'basic') {
-              options.expandedMessage = item.description;
-              var expandedMaxLength = 180;
+            if (notification.type == 'basic') {
+              notification.expandedMessage = item.description;
+              var expandedMaxLength = (item.longStory ? 300 : 180);
               if (expandedMaxLength < item.description.length) {
-                options.expandedMessage = item.description.substring(0, expandedMaxLength) + '...';
+                notification.expandedMessage = item.description.substring(0, expandedMaxLength) + '...';
               }
             }
             
@@ -141,15 +208,20 @@ var Browser = {
             window[id] = item.link;
 
             // Show the notification
-            chrome.notifications.create(id, options, function(notID) {
+            chrome.notifications.create(id, notification, function(notID) {
               if (self.debug) console.log('Succesfully created notification with ID', notID);
             });
-            // Chrom(e|ium) on Linux doesn't remove the notification automatically
+            // Choose how long the notification stays around for
+            // if stay? 10 minutes
+            // if longStory? 10 seconds
+            // else 5 seconds
+            // Note: Chrom(e|ium) on Linux doesn't remove the notification automatically
+            var timeout = (item.stay ? 600000 : (item.longStory ? 10000 : 5000));
             setTimeout(function() {
               chrome.notifications.clear(id, function(wasCleared) {
                 if (self.debug) console.log('Cleared notification?', wasCleared);
               });
-            }, 5000);
+            }, timeout);
           }
           else {
             if (self.debug) console.log('Notification not sent, state was', state);
@@ -187,28 +259,56 @@ var Browser = {
     }
   },
   
-  notificationClosed: function(notID, bByUser) {
-    if (!DEBUG) {
-      if (bByUser) {
-        _gaq.push(['_trackEvent', 'notification', 'closeNotification', 'byUser']);
-      }
-      else {
-        _gaq.push(['_trackEvent', 'notification', 'closeNotification', 'automatic']);
-      }
+  notificationClosed: function(notID, byUser) {
+    if (byUser) {
+      Analytics.trackEvent('closeNotification', 'byUser');
+    }
+    else {
+      Analytics.trackEvent('closeNotification', 'automatic');
     }
   },
 
   notificationClicked: function(notID) {
     var link = window[notID];
-    if (!DEBUG) {
-      _gaq.push(['_trackEvent', 'notification', 'clickNotification', link]);
-    }
+    Analytics.trackEvent('clickNotification', link);
     Browser.openTab(link);
   },
 
   notificationBtnClick: function(notID, iBtn) {
-    if (!DEBUG) {
-      _gaq.push(['_trackEvent', 'notification', 'clickNotificationButton', iBtn]);
+    Analytics.trackEvent('clickNotificationButton', iBtn);
+  },
+
+  bindOmniboxToOracle: function() {
+    if (BROWSER == 'Chrome' || BROWSER == 'Opera') {
+      // This event is fired each time the user updates the text in the omnibox,
+      // as long as the extension's keyword mode is still active.
+      // chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
+      //   if (Browser.debug) console.log('inputChanged: ' + text);
+      //   suggest([
+      //     {content: text + " one", description: text + " the first one"},
+      //     {content: text + " number two", description: text + " the second entry"}
+      //   ]);
+      // });
+      // This event is fired with the user accepts the input in the omnibox.
+      chrome.omnibox.onInputEntered.addListener(function(text) {
+        // console.log('inputEntered: ' + text);
+        Oracle.ask(text, function(answer) {
+          answer = answer.replace(/@/g, '\n');
+          if (Browser.debug) console.log('oracle answer: ' + answer);
+          Analytics.trackEvent('oracleOmniboxAnswer');
+          // Browser.createNotification
+          //   'feedKey': ls.affiliationKey1
+          //   'title': 'Orakelet'
+          //   'description': answer
+          //   'link': 'http://atb.no'
+          //   'longStory': true
+          //   'stay': true
+          alert(answer);
+        });
+      });
+    }
+    else {
+      console.log(this.msgUnsupported);
     }
   },
 

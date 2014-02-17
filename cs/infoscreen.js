@@ -12,10 +12,22 @@
   newsLimit = 8;
 
   mainLoop = function() {
-    if (DEBUG) {
-      console.log("\n#" + iteration);
+    console.lolg("\n#" + iteration);
+    if (navigator.onLine) {
+      if (iteration % UPDATE_HOURS_INTERVAL === 0 && ls.showCantina === 'true') {
+        updateHours();
+      }
+      if (iteration % UPDATE_CANTINAS_INTERVAL === 0 && ls.showCantina === 'true') {
+        updateCantinas();
+      }
+      if (iteration % UPDATE_NEWS_INTERVAL === 0 && ls.showAffiliation1 === 'true') {
+        updateAffiliationNews('1');
+      }
+      if (iteration % UPDATE_NEWS_INTERVAL === 0 && ls.showAffiliation2 === 'true') {
+        updateAffiliationNews('2');
+      }
     }
-    if (Affiliation.org[ls.affiliationKey1].hardwareFeatures) {
+    if (Affiliation.org[ls.affiliationKey1].hw) {
       if (iteration % UPDATE_OFFICE_INTERVAL === 0 && ls.showOffice === 'true') {
         updateOffice();
       }
@@ -29,20 +41,8 @@
         updateCoffee();
       }
     }
-    if (iteration % UPDATE_CANTINAS_INTERVAL === 0 && ls.showCantina === 'true') {
-      updateCantinas();
-    }
-    if (iteration % UPDATE_HOURS_INTERVAL === 0 && ls.showCantina === 'true') {
-      updateHours();
-    }
     if (iteration % UPDATE_BUS_INTERVAL === 0 && ls.showBus === 'true') {
       updateBus();
-    }
-    if (iteration % UPDATE_NEWS_INTERVAL === 0 && ls.showAffiliation1 === 'true' && navigator.onLine) {
-      updateAffiliationNews('1');
-    }
-    if (iteration % UPDATE_NEWS_INTERVAL === 0 && ls.showAffiliation2 === 'true' && navigator.onLine) {
-      updateAffiliationNews('2');
     }
     if (10000 < iteration) {
       iteration = 0;
@@ -55,9 +55,7 @@
   };
 
   updateOffice = function(debugStatus) {
-    if (DEBUG) {
-      console.log('updateOffice');
-    }
+    console.lolg('updateOffice');
     return Office.get(function(status, message) {
       if (DEBUG && debugStatus) {
         status = debugStatus;
@@ -89,18 +87,14 @@
   };
 
   updateServant = function() {
-    if (DEBUG) {
-      console.log('updateServant');
-    }
+    console.lolg('updateServant');
     return Servant.get(function(servant) {
       return $('#todays #schedule #servant').html('- ' + servant);
     });
   };
 
   updateMeetings = function() {
-    if (DEBUG) {
-      console.log('updateMeetings');
-    }
+    console.lolg('updateMeetings');
     return Meetings.get(function(meetings) {
       meetings = meetings.replace(/\n/g, '<br />');
       return $('#todays #schedule #meetings').html(meetings);
@@ -108,30 +102,27 @@
   };
 
   updateCoffee = function() {
-    if (DEBUG) {
-      console.log('updateCoffee');
-    }
+    console.lolg('updateCoffee');
     return Coffee.get(true, function(pots, age) {
       $('#todays #coffee #pots').html('- ' + pots);
       return $('#todays #coffee #age').html(age);
     });
   };
 
-  updateCantinas = function() {
-    if (DEBUG) {
-      console.log('updateCantinas');
-    }
+  updateCantinas = function(first) {
+    var update;
+    console.lolg('updateCantinas');
+    update = function(shortname, menu, selector) {
+      var name;
+      name = Cantina.names[shortname];
+      $('#cantinas #' + selector + ' .title').html(name);
+      return $('#cantinas #' + selector + ' #dinnerbox').html(listDinners(menu));
+    };
     Cantina.get(ls.leftCantina, function(menu) {
-      var cantinaName;
-      cantinaName = Cantina.names[ls.leftCantina];
-      $('#cantinas #left .title').html(cantinaName);
-      return $('#cantinas #left #dinnerbox').html(listDinners(menu));
+      return update(ls.leftCantina, menu, 'left');
     });
     return Cantina.get(ls.rightCantina, function(menu) {
-      var cantinaName;
-      cantinaName = Cantina.names[ls.rightCantina];
-      $('#cantinas #right .title').html(cantinaName);
-      return $('#cantinas #right #dinnerbox').html(listDinners(menu));
+      return update(ls.rightCantina, menu, 'right');
     });
   };
 
@@ -157,9 +148,7 @@
   };
 
   updateHours = function() {
-    if (DEBUG) {
-      console.log('updateHours');
-    }
+    console.lolg('updateHours');
     Hours.get(ls.leftCantina, function(hours) {
       return $('#cantinas #left .hours').html(hours);
     });
@@ -169,9 +158,7 @@
   };
 
   updateBus = function() {
-    if (DEBUG) {
-      console.log('updateBus');
-    }
+    console.lolg('updateBus');
     if (!navigator.onLine) {
       $('#bus #firstBus .name').html(ls.firstBusName);
       $('#bus #secondBus .name').html(ls.secondBusName);
@@ -205,7 +192,7 @@
       return $(busStop + ' .first .line').html('<div class="error">' + lines + '</div>');
     } else {
       if (lines['departures'].length === 0) {
-        return $(busStop + ' .first .line').html('<div class="error">....zzzZZZzzz....<br />(etter midnatt vises ikke)</div>');
+        return $(busStop + ' .first .line').html('<div class="error">....zzzZZZzzz....</div>');
       } else {
         _results = [];
         for (i in spans) {
@@ -219,9 +206,7 @@
 
   updateAffiliationNews = function(number) {
     var affiliation, affiliationKey, selector;
-    if (DEBUG) {
-      console.log('updateAffiliationNews' + number);
-    }
+    console.lolg('updateAffiliationNews' + number);
     selector = number === '1' ? '#left' : '#right';
     if (ls.showAffiliation2 !== 'true') {
       selector = '#full';
@@ -229,17 +214,13 @@
     affiliationKey = ls['affiliationKey' + number];
     affiliation = Affiliation.org[affiliationKey];
     if (affiliation === void 0) {
-      if (DEBUG) {
-        return console.log('ERROR: chosen affiliation', ls['affiliationKey' + number], 'is not known');
-      }
+      return console.lolg('ERROR: chosen affiliation', ls['affiliationKey' + number], 'is not known');
     } else {
       newsLimit = 10;
       return News.get(affiliation, newsLimit, function(items) {
         var key, name, newsList;
         if (typeof items === 'string' || items.length === 0) {
-          if (DEBUG) {
-            console.log('ERROR:', items);
-          }
+          console.lolg('ERROR:', items);
           key = ls['affiliationKey' + number];
           name = Affiliation.org[key].name;
           return $('#news ' + selector).html('<div class="post"><div class="title">Nyheter</div><div class="item">Frakoblet fra ' + name + '</div></div>');
@@ -366,7 +347,7 @@
 
   officeFontRotate = function(font) {
     var chosenFont, fonts;
-    fonts = ['fondamento', 'mysteryquest', 'oleoscript', 'sancreek'];
+    fonts = ['cardo', 'fondamento', 'oleoscript', 'sourcesans'];
     if (__indexOf.call(fonts, font) >= 0) {
       chosenFont = font;
     } else {
@@ -457,22 +438,12 @@
     if (ls.showAffiliation2 !== 'true') {
       $('#news #right').hide();
       $('#news #left').attr('id', 'full');
-      if (!DEBUG) {
-        _gaq.push(['_trackEvent', 'infoscreen', 'loadSingleAffiliation', ls.affiliationKey1]);
-      }
-      if (!DEBUG) {
-        _gaq.push(['_trackEvent', 'infoscreen', 'loadAffiliation1', ls.affiliationKey1]);
-      }
+      Analytics.trackEvent('loadSingleAffiliation', ls.affiliationKey1);
+      Analytics.trackEvent('loadAffiliation1', ls.affiliationKey1);
     } else {
-      if (!DEBUG) {
-        _gaq.push(['_trackEvent', 'infoscreen', 'loadDoubleAffiliation', ls.affiliationKey1 + ' - ' + ls.affiliationKey2]);
-      }
-      if (!DEBUG) {
-        _gaq.push(['_trackEvent', 'infoscreen', 'loadAffiliation1', ls.affiliationKey1]);
-      }
-      if (!DEBUG) {
-        _gaq.push(['_trackEvent', 'infoscreen', 'loadAffiliation2', ls.affiliationKey2]);
-      }
+      Analytics.trackEvent('loadDoubleAffiliation', ls.affiliationKey1 + ' - ' + ls.affiliationKey2);
+      Analytics.trackEvent('loadAffiliation1', ls.affiliationKey1);
+      Analytics.trackEvent('loadAffiliation2', ls.affiliationKey2);
     }
     if (ls.showOffice !== 'true') {
       $('#office').hide();
@@ -498,9 +469,7 @@
     }
     $('link[rel="shortcut icon"]').attr('href', icon);
     $('#news .post img').attr('src', placeholder);
-    if (!DEBUG) {
-      _gaq.push(['_trackEvent', 'infoscreen', 'loadPalette', ls.affiliationPalette]);
-    }
+    Analytics.trackEvent('loadPalette', ls.affiliationPalette);
     if (OPERATING_SYSTEM === 'Windows') {
       $('#pfText').attr("style", "bottom:9px;");
       $('#pfLink').attr("style", "bottom:9px;");

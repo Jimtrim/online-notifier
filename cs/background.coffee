@@ -4,14 +4,17 @@ ls = localStorage
 iteration = 0
 
 mainLoop = ->
-  if DEBUG then console.log "\n#" + iteration
+  console.lolg "\n#" + iteration
 
   if ls.useInfoscreen isnt 'true'
-    if Affiliation.org[ls.affiliationKey1].hardwareFeatures
+    if navigator.onLine
+      updateHours() if iteration % UPDATE_HOURS_INTERVAL is 0 and ls.showCantina is 'true'
+      updateCantinas() if iteration % UPDATE_CANTINAS_INTERVAL is 0 and ls.showCantina is 'true'
+      updateAffiliationNews '1' if iteration % UPDATE_NEWS_INTERVAL is 0 and ls.showAffiliation1 is 'true'
+      updateAffiliationNews '2' if iteration % UPDATE_NEWS_INTERVAL is 0 and ls.showAffiliation2 is 'true'
+    if Affiliation.org[ls.affiliationKey1].hw
       updateOfficeAndMeetings() if iteration % UPDATE_OFFICE_INTERVAL is 0 and ls.showOffice is 'true'
       updateCoffeeSubscription() if iteration % UPDATE_COFFEE_INTERVAL is 0 and ls.coffeeSubscription is 'true'
-    updateAffiliationNews '1' if iteration % UPDATE_NEWS_INTERVAL is 0 and ls.showAffiliation1 is 'true' and navigator.onLine # Only if online, otherwise keep old news
-    updateAffiliationNews '2' if iteration % UPDATE_NEWS_INTERVAL is 0 and ls.showAffiliation2 is 'true' and navigator.onLine # Only if online, otherwise keep old news
   
   # No reason to count to infinity
   if 10000 < iteration then iteration = 0 else iteration++
@@ -29,7 +32,7 @@ mainLoop = ->
   ), loopTimeout
 
 updateOfficeAndMeetings = (force) ->
-  if DEBUG then console.log 'updateOfficeAndMeetings'
+  console.lolg 'updateOfficeAndMeetings'
   Office.get (status, message) ->
     title = ''
     if force or ls.officeStatus isnt status or ls.officeStatusMessage isnt message
@@ -39,7 +42,7 @@ updateOfficeAndMeetings = (force) ->
         Browser.setIcon Office.foods[status].icon
       else
         title = Office.statuses[status].title
-        statusIcon = Affiliation.org[ls.affiliationKey1].statusIcons[status]
+        statusIcon = Affiliation.org[ls.affiliationKey1].hw.statusIcons[status]
         if statusIcon isnt undefined
           Browser.setIcon statusIcon
         else
@@ -53,7 +56,7 @@ updateOfficeAndMeetings = (force) ->
         ls.officeStatusMessage = message
 
 updateCoffeeSubscription = ->
-  if DEBUG then console.log 'updateCoffeeSubscription'
+  console.lolg 'updateCoffeeSubscription'
   Coffee.get false, (pots, age) ->
     # Error messages will be NaN here
     if not isNaN pots and not isNaN age
@@ -69,20 +72,32 @@ updateCoffeeSubscription = ->
       # And remember to update localStorage
       ls.coffeePots = pots
 
+updateCantinas = ->
+  console.lolg 'updateCantinas'
+  Cantina.get ls.leftCantina, (menu) ->
+    ls.leftCantinaMenu = JSON.stringify menu
+  Cantina.get ls.rightCantina, (menu) ->
+    ls.rightCantinaMenu = JSON.stringify menu
+
+updateHours = ->
+  console.lolg 'updateHours'
+  Hours.get ls.leftCantina, (hours) ->
+    ls.leftCantinaHours = hours
+  Hours.get ls.rightCantina, (hours) ->
+    ls.rightCantinaHours = hours
+
 updateAffiliationNews = (number) ->
-  if DEBUG then console.log 'updateAffiliationNews'+number
+  console.lolg 'updateAffiliationNews'+number
   # Get affiliation object
   affiliationKey = ls['affiliationKey'+number]
-  affiliation = Affiliation.org[affiliationKey]
-  if affiliation is undefined
-    if DEBUG then console.log 'ERROR: chosen affiliation', ls['affiliationKey'+number], 'is not known'
-  else
+  affiliationObject = Affiliation.org[affiliationKey]
+  if affiliationObject
     # Get more news than needed to check for old news that have been updated
     newsLimit = 10
-    News.get affiliation, newsLimit, (items) ->
+    News.get affiliationObject, newsLimit, (items) ->
       # Error message, log it maybe
       if typeof items is 'string'
-        if DEBUG then console.log 'ERROR:', items
+        console.lolg 'ERROR:', items
       # Empty news items, don't count
       else if items.length is 0
         updateUnreadCount 0, 0
@@ -90,6 +105,8 @@ updateAffiliationNews = (number) ->
       else
         saveAndCountNews items, number
         updateUnreadCount()
+  else
+    console.lolg 'ERROR: chosen affiliation', ls['affiliationKey'+number], 'is not known'
 
 saveAndCountNews = (items, number) ->
   feedItems = 'affiliationFeedItems'+number
@@ -120,26 +137,32 @@ $ ->
   # Setting the timeout for all AJAX and JSON requests
   $.ajaxSetup AJAX_SETUP
 
+  # Check if both current affiliations still exist, reset if not
+  keys = Object.keys Affiliation.org
+  Defaults.resetAffiliationsIfNotExist ls.affiliationKey1, ls.affiliationKey2, keys
+
   # Turn off hardwarefeatures if they're not available
-  isAvailable = Affiliation.org[ls.affiliationKey1].hardwareFeatures
+  isAvailable = if Affiliation.org[ls.affiliationKey1].hw then true else false
   Defaults.setHardwareFeatures isAvailable
 
   # Open options page after install
   if ls.everOpenedOptions is 'false' and !DEBUG
     Browser.openTab 'options.html'
-    if !DEBUG then _gaq.push(['_trackEvent', 'background', 'loadOptions (fresh install)'])
+    Analytics.trackEvent 'loadOptions (fresh install)'
   # Open Infoscreen if the option is set
   if ls.useInfoscreen is 'true'
     Browser.openTab 'infoscreen.html'
-    if !DEBUG then _gaq.push(['_trackEvent', 'background', 'loadInfoscreen'])
+    Analytics.trackEvent 'loadInfoscreen'
   # Open Chatter if the option is set
   if ls.openChatter is 'true'
     Browser.openBackgroundTab 'http://webchat.freenode.net/?channels=online'
-    if !DEBUG then _gaq.push(['_trackEvent', 'background', 'loadChatter'])
+    Analytics.trackEvent 'loadChatter'
 
   loadAffiliationIcon()
-  
+
+  Browser.bindCommandHotkeys()
   Browser.registerNotificationListeners()
+  Browser.bindOmniboxToOracle()
 
   # Attaching the update-functions to the window (global) object so other pages
   # may lend these functions via Browser.getBackgroundProcess().function()
@@ -147,9 +170,25 @@ $ ->
   # to code rot.
   window.updateOfficeAndMeetings = updateOfficeAndMeetings
   window.updateCoffeeSubscription = updateCoffeeSubscription
+  window.updateHours = updateHours
+  window.updateCantinas = updateCantinas
   window.updateAffiliationNews = updateAffiliationNews
   window.loadAffiliationIcon = loadAffiliationIcon
 
+  # Send some basic statistics once a day
+  setInterval ( ->
+    # App version is interesting
+    Analytics.trackEvent 'appVersion', Browser.getAppVersion()
+    # Affiliation is also interesting, in contrast to the popup some of these are inactive users
+    # To find inactive user count, subtract these stats from popup stats
+    if ls.showAffiliation2 isnt 'true'
+      Analytics.trackEvent 'singleAffiliation', ls.affiliationKey1
+      Analytics.trackEvent 'affiliation1', ls.affiliationKey1
+    else
+      Analytics.trackEvent 'doubleAffiliation', ls.affiliationKey1 + ' - ' + ls.affiliationKey2
+      Analytics.trackEvent 'affiliation1', ls.affiliationKey1
+      Analytics.trackEvent 'affiliation2', ls.affiliationKey2
+  ), 1000 * 60 * 60 * 24
+
   # Enter main loop, keeping everything up-to-date
   mainLoop()
-

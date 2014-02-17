@@ -6,19 +6,23 @@ iteration = 0
 newsLimit = 8 # The most news you can cram into Infoscreen, if other features are disabled
 
 mainLoop = ->
-  if DEBUG then console.log "\n#" + iteration
+  console.lolg "\n#" + iteration
 
-  if Affiliation.org[ls.affiliationKey1].hardwareFeatures
+  # Only if online, else keep good old
+  if navigator.onLine
+    updateHours() if iteration % UPDATE_HOURS_INTERVAL is 0 and ls.showCantina is 'true'
+    updateCantinas() if iteration % UPDATE_CANTINAS_INTERVAL is 0 and ls.showCantina is 'true'
+    updateAffiliationNews '1' if iteration % UPDATE_NEWS_INTERVAL is 0 and ls.showAffiliation1 is 'true'
+    updateAffiliationNews '2' if iteration % UPDATE_NEWS_INTERVAL is 0 and ls.showAffiliation2 is 'true'
+  # Only if hardware
+  if Affiliation.org[ls.affiliationKey1].hw
     updateOffice() if iteration % UPDATE_OFFICE_INTERVAL is 0 and ls.showOffice is 'true'
     updateServant() if iteration % UPDATE_SERVANT_INTERVAL is 0 and ls.showOffice is 'true'
     updateMeetings() if iteration % UPDATE_MEETINGS_INTERVAL is 0 and ls.showOffice is 'true'
     updateCoffee() if iteration % UPDATE_COFFEE_INTERVAL is 0 and ls.showOffice is 'true'
-  updateCantinas() if iteration % UPDATE_CANTINAS_INTERVAL is 0 and ls.showCantina is 'true'
-  updateHours() if iteration % UPDATE_HOURS_INTERVAL is 0 and ls.showCantina is 'true'
+  # Always update, tell when offline
   updateBus() if iteration % UPDATE_BUS_INTERVAL is 0 and ls.showBus is 'true'
-  updateAffiliationNews '1' if iteration % UPDATE_NEWS_INTERVAL is 0 and ls.showAffiliation1 is 'true' and navigator.onLine # Only if online, otherwise keep old news
-  updateAffiliationNews '2' if iteration % UPDATE_NEWS_INTERVAL is 0 and ls.showAffiliation2 is 'true' and navigator.onLine # Only if online, otherwise keep old news
-  
+
   # No reason to count to infinity
   if 10000 < iteration then iteration = 0 else iteration++
   
@@ -27,7 +31,7 @@ mainLoop = ->
   ), PAGE_LOOP
 
 updateOffice = (debugStatus) ->
-  if DEBUG then console.log 'updateOffice'
+  console.lolg 'updateOffice'
   Office.get (status, message) ->
     if DEBUG and debugStatus
       status = debugStatus
@@ -56,32 +60,32 @@ updateOffice = (debugStatus) ->
       ls.infoscreenOfficeStatusMessage = message
 
 updateServant = ->
-  if DEBUG then console.log 'updateServant'
+  console.lolg 'updateServant'
   Servant.get (servant) ->
     $('#todays #schedule #servant').html '- '+servant
 
 updateMeetings = ->
-  if DEBUG then console.log 'updateMeetings'
+  console.lolg 'updateMeetings'
   Meetings.get (meetings) ->
     meetings = meetings.replace /\n/g, '<br />'
     $('#todays #schedule #meetings').html meetings
 
 updateCoffee = ->
-  if DEBUG then console.log 'updateCoffee'
+  console.lolg 'updateCoffee'
   Coffee.get true, (pots, age) ->
     $('#todays #coffee #pots').html '- '+pots
     $('#todays #coffee #age').html age
 
-updateCantinas = ->
-  if DEBUG then console.log 'updateCantinas'
+updateCantinas = (first) ->
+  console.lolg 'updateCantinas'
+  update = (shortname, menu, selector) ->
+    name = Cantina.names[shortname]
+    $('#cantinas #'+selector+' .title').html name
+    $('#cantinas #'+selector+' #dinnerbox').html listDinners menu
   Cantina.get ls.leftCantina, (menu) ->
-    cantinaName = Cantina.names[ls.leftCantina]
-    $('#cantinas #left .title').html cantinaName
-    $('#cantinas #left #dinnerbox').html listDinners(menu)
+    update ls.leftCantina, menu, 'left'
   Cantina.get ls.rightCantina, (menu) ->
-    cantinaName = Cantina.names[ls.rightCantina]
-    $('#cantinas #right .title').html cantinaName
-    $('#cantinas #right #dinnerbox').html listDinners(menu)
+    update ls.rightCantina, menu, 'right'
 
 listDinners = (menu) ->
   dinnerlist = ''
@@ -100,14 +104,14 @@ listDinners = (menu) ->
   return dinnerlist
 
 updateHours = ->
-  if DEBUG then console.log 'updateHours'
+  console.lolg 'updateHours'
   Hours.get ls.leftCantina, (hours) ->
     $('#cantinas #left .hours').html hours
   Hours.get ls.rightCantina, (hours) ->
     $('#cantinas #right .hours').html hours
 
 updateBus = ->
-  if DEBUG then console.log 'updateBus'
+  console.lolg 'updateBus'
   if !navigator.onLine
     $('#bus #firstBus .name').html ls.firstBusName
     $('#bus #secondBus .name').html ls.secondBusName
@@ -141,7 +145,7 @@ insertBusInfo = (lines, stopName, cssIdentificator) ->
   else
     # No lines to display, busstop is sleeping
     if lines['departures'].length is 0
-      $(busStop+' .first .line').html '<div class="error">....zzzZZZzzz....<br />(etter midnatt vises ikke)</div>'
+      $(busStop+' .first .line').html '<div class="error">....zzzZZZzzz....</div>'
     else
       # Display line for line with according times
       for i of spans
@@ -150,7 +154,7 @@ insertBusInfo = (lines, stopName, cssIdentificator) ->
         $(busStop+' .'+spans[i]+' .time').append lines['departures'][i]
 
 updateAffiliationNews = (number) ->
-  if DEBUG then console.log 'updateAffiliationNews'+number
+  console.lolg 'updateAffiliationNews'+number
   # Detect selector
   selector = if number is '1' then '#left' else '#right'
   if ls.showAffiliation2 isnt 'true' then selector = '#full'
@@ -158,14 +162,14 @@ updateAffiliationNews = (number) ->
   affiliationKey = ls['affiliationKey'+number]
   affiliation = Affiliation.org[affiliationKey]
   if affiliation is undefined
-    if DEBUG then console.log 'ERROR: chosen affiliation', ls['affiliationKey'+number], 'is not known'
+    console.lolg 'ERROR: chosen affiliation', ls['affiliationKey'+number], 'is not known'
   else
     # Get more news than needed to check for old news that have been updated
     newsLimit = 10
     News.get affiliation, newsLimit, (items) ->
       # Error message (log it maybe), or zero items in news feed
       if typeof items is 'string' or items.length is 0
-        if DEBUG then console.log 'ERROR:', items
+        console.lolg 'ERROR:', items
         key = ls['affiliationKey'+number]
         name = Affiliation.org[key].name
         $('#news '+selector).html '<div class="post"><div class="title">Nyheter</div><div class="item">Frakoblet fra '+name+'</div></div>'
@@ -289,7 +293,7 @@ findUpdatedPosts = (newsList, viewedList) ->
   return updatedList
 
 officeFontRotate = (font) ->
-  fonts = ['fondamento','mysteryquest','oleoscript','sancreek']
+  fonts = ['cardo','fondamento','oleoscript','sourcesans']
   if font in fonts
     chosenFont = font
   else
@@ -366,16 +370,16 @@ $ ->
     $('#news #right').hide()
     $('#news #left').attr 'id', 'full'
     # Who uses single affiliations?
-    if !DEBUG then _gaq.push(['_trackEvent', 'infoscreen', 'loadSingleAffiliation', ls.affiliationKey1])
+    Analytics.trackEvent 'loadSingleAffiliation', ls.affiliationKey1
     # What is the prefered primary affiliation?
-    if !DEBUG then _gaq.push(['_trackEvent', 'infoscreen', 'loadAffiliation1', ls.affiliationKey1])
+    Analytics.trackEvent 'loadAffiliation1', ls.affiliationKey1
   else
     # What kind of double affiliations are used?
-    if !DEBUG then _gaq.push(['_trackEvent', 'infoscreen', 'loadDoubleAffiliation', ls.affiliationKey1 + ' - ' + ls.affiliationKey2])
+    Analytics.trackEvent 'loadDoubleAffiliation', ls.affiliationKey1 + ' - ' + ls.affiliationKey2
     # What is the prefered primary affiliation?
-    if !DEBUG then _gaq.push(['_trackEvent', 'infoscreen', 'loadAffiliation1', ls.affiliationKey1])
+    Analytics.trackEvent 'loadAffiliation1', ls.affiliationKey1
     # What is the prefered secondary affiliation?
-    if !DEBUG then _gaq.push(['_trackEvent', 'infoscreen', 'loadAffiliation2', ls.affiliationKey2])
+    Analytics.trackEvent 'loadAffiliation2', ls.affiliationKey2
 
   # Hide stuff that the user has disabled in options
   $('#office').hide() if ls.showOffice isnt 'true'
@@ -397,7 +401,7 @@ $ ->
   $('#news .post img').attr 'src', placeholder
 
   # Track popularity of the chosen palette, the palette itself is loaded a lot earlier for perceived speed
-  if !DEBUG then _gaq.push(['_trackEvent', 'infoscreen', 'loadPalette', ls.affiliationPalette])
+  Analytics.trackEvent 'loadPalette', ls.affiliationPalette
   
   # Minor esthetical adjustments for OS version
   if OPERATING_SYSTEM == 'Windows'
